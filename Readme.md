@@ -10,7 +10,7 @@
 
 ## Table of Contents
 1. [Core Domain & The Real-World Laundering Problem](#1-core-domain--the-real-world-laundering-problem)
-2. [Dataset Composition & Numbers Demystified](#2-dataset-composition--numbers-demystified)
+2. [Dataset Composition & Numbers Demystified (See Dataset.md)](#2-dataset-composition--numbers-demystified)
 3. [Deep Learning Terminology $\longleftrightarrow$ Bitcoin Money Laundering](#3-deep-learning-terminology--bitcoin-money-laundering)
 4. [Why Traditional Tabular Approaches (RF & MLP) Fail](#4-why-traditional-tabular-approaches-rf--mlp-fail)
 5. [Graph Convolutional Network (GCN) & The Information Smearing Problem](#5-graph-convolutional-network-gcn--the-information-smearing-problem)
@@ -64,6 +64,8 @@ Bitcoin is a decentralized, peer-to-peer digital currency operating on an open c
 
 # 2. Dataset Composition & Numbers Demystified
 
+> 📖 **Full Dataset Specification & Download Links:** For detailed feature definitions, preprocessing formulas, and download mirrors, see [`Dataset.md`](Dataset.md).
+
 The benchmark dataset evaluated is the **Elliptic Bitcoin Dataset** (published by MIT-IBM Watson AI Lab in ACM SIGKDD 2019).
 
 ```
@@ -90,7 +92,13 @@ The benchmark dataset evaluated is the **Elliptic Bitcoin Dataset** (published b
 | **2** | **Unknown** | **157,205** | ~77.2% | Unlabeled; retained in graph for message passing, masked from loss |
 | **Total** | **All Nodes** | **203,769** | 100.0% | Complete transaction network |
 
-* **Total Labeled Subgraph:** $42{,}019 + 4{,}545 = \mathbf{46{,}564}$ transactions.
+### Why We Combine Licit and Illicit for Accuracy & Evaluation:
+* **The Evaluated Ground-Truth Universe:** To calculate accuracy and supervised loss, we combine verified **Licit ($42{,}019$)** and verified **Illicit ($4{,}545$)** nodes, forming a ground-truth labeled set of **$46{,}564$ transactions**.
+* **Why Unknown Nodes Are Masked:** Computing accuracy over all 203,769 nodes is impossible because 77.2% of the transactions have no known ground-truth label. If they were included, accuracy would be meaningless.
+* **Why Unknown Nodes Are Kept in the Graph:** Unknown nodes cannot be deleted because they act as vital intermediate routing hops (mixers and peeling chains). If removed, the graph would fracture into disconnected pieces. Thus, unknown nodes participate in GAT message passing, but their loss and accuracy are masked out (`labeled_mask = (y == 0) | (y == 1)`).
+* **Overall Accuracy Formula:** Accuracy reflects overall correctness across both classes on the held-out test set ($N=6{,}984$):
+  $$\text{Accuracy} = \frac{\text{Correct Licit (TN = 6,014)} + \text{Correct Illicit (TP = 525)}}{\text{Total Labeled Test Nodes (6,984)}} = \frac{6{,}539}{6{,}984} = \mathbf{93.54\%}$$
+
 * **Positive Imbalance Weight:**
   $$w_{\text{pos}} = \frac{N_{\text{licit}}}{N_{\text{illicit}}} = \frac{42{,}019}{4{,}545} \approx \mathbf{9.245}$$
 
